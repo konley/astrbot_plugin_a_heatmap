@@ -1,0 +1,74 @@
+﻿{
+  "command_keywords": {
+    "description": "触发指令关键词（逗号分隔，支持多个）",
+    "type": "string",
+    "default": "热力图",
+    "hint": "例如：热力图,大盘,heatmap。用户发送任一关键词即可触发生成热力图"
+  },
+  "ignore_slash": {
+    "description": "忽略指令前的 / 或 # 前缀",
+    "type": "bool",
+    "default": true,
+    "hint": "开启后 /热力图、#热力图 和 热力图 都能触发"
+  },
+  "admin_only": {
+    "description": "仅管理员可调用",
+    "type": "bool",
+    "default": false,
+    "hint": "开启后普通用户无法生成热力图"
+  },
+  "cooldown": {
+    "description": "冷却时间（秒）",
+    "type": "int",
+    "default": 30,
+    "hint": "同一用户在该时间内重复触发会被拦截，防止频繁刷图"
+  },
+  "max_industries": {
+    "description": "显示前 N 个行业板块",
+    "type": "int",
+    "default": 35,
+    "hint": "按总市值排序取前 N 个行业，范围 10~50"
+  },
+  "max_stocks_per_industry": {
+    "description": "每个行业最多显示个股数",
+    "type": "int",
+    "default": 50,
+    "hint": "每个行业内按市值排序取前 N 只股票，范围 10~100"
+  },
+  "dpi": {
+    "description": "图片清晰度",
+    "type": "int",
+    "default": 130,
+    "hint": "越高越清晰，文件也越大。建议 100~200"
+  },
+  "schedule_enable": {
+    "description": "开启定时自动推送",
+    "type": "bool",
+    "default": false,
+    "hint": "开启后按 Cron 表达式自动推送热力图到指定群/用户"
+  },
+  "schedule_cron": {
+    "description": "定时推送 Cron 表达式",
+    "type": "string",
+    "default": "0 15 * * 1-5",
+    "hint": "常用示例：\n0 15 * * 1-5 → 每个工作日 15:00 收盘推送\n0 9,15 * * 1-5 → 工作日 9:00 开盘和 15:00 收盘各推一次\n30 14 * * 1-5 → 工作日 14:30 推送\n0 11,14 * * 1-5 → 工作日 11:00 和 14:00 各推一次\n格式说明：分 时 日 月 周（0=周日，1-5=周一至周五）"
+  },
+  "schedule_targets": {
+    "description": "推送目标列表（群号或QQ号，每行一个）",
+    "type": "list",
+    "default": [],
+    "hint": "群号填纯数字，如 123456789。支持同时推送到多个群"
+  },
+  "schedule_target_type": {
+    "description": "推送目标类型",
+    "type": "string",
+    "default": "group",
+    "hint": "group=群聊推送，private=私聊推送"
+  },
+  "schedule_platform": {
+    "description": "平台实例 ID",
+    "type": "string",
+    "default": "",
+    "hint": "留空自动检测第一个可用平台（如 aiocqhttp）。也可手动填写平台实例 ID"
+  }
+}

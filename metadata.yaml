@@ -1,0 +1,5 @@
+name: astrbot_plugin_a_heatmap
+desc: A股大盘热力图，发送指令生成实时行情 treemap 截图，支持定时推送到群
+version: 0.1.0
+author: konley
+display_name: A股热力图
