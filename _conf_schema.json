@@ -1,4 +1,4 @@
-﻿{
+{
   "command_keywords": {
     "description": "触发指令关键词（逗号分隔，支持多个）",
     "type": "string",
