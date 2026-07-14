@@ -182,8 +182,7 @@ class AHeatmapPlugin(Star):
             yield event.plain_result("生成中，请稍后再试～")
             return
 
-        yield event.plain_result("正在生成 A 股热力图，请稍候...")
-
+        # 直接生成图片，一次性返回（不能中间 yield 否则后续被丢弃）
         img_path = await self._generate_heatmap()
         if img_path is None:
             yield event.plain_result("热力图生成失败，请稍后重试。")
