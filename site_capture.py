@@ -1,7 +1,8 @@
 """从 52etf.site 通过 Playwright 导出官方热力图 PNG。
 
 与官网「截图分享」同源：等待 treemap 就绪后点击 .screenshot-trigger，
-从预览 dataURL 解码 PNG。浏览器实例进程内复用，全局锁防并发爆内存。
+从预览 dataURL 解码 PNG。失败时兜底截取 #treemap 主画布（非整页 UI）。
+浏览器实例进程内复用，全局锁防并发爆内存。
 """
 
 from __future__ import annotations
@@ -111,11 +112,39 @@ class SiteHeatmapCapturer:
             if self.ready_wait_ms > 0:
                 await page.wait_for_timeout(self.ready_wait_ms)
 
-            # 优先：点击官网「截图分享」按钮，读预览 dataURL
-            btn = await page.query_selector(".screenshot-trigger")
-            data_url = None
-            if btn:
+            # 1) 优先：点击官网「截图分享」，读预览 dataURL（画质最好）
+            raw = await self._try_official_export(page)
+            mode = "site_export"
+            if raw is None:
+                # 2) 兜底：截主画布 #treemap（比整页少侧栏/按钮）
+                raw = await self._fallback_treemap_screenshot(page)
+                mode = "treemap_screenshot"
+
+            if len(raw) < 1000:
+                raise SiteCaptureError(f"导出图片过小（{len(raw)} bytes），可能渲染未完成")
+
+            logger.info(
+                f"[a_heatmap] 52etf 导出成功 mode={mode} size={len(raw)} "
+                f"cost={time.time() - t0:.1f}s"
+            )
+            return raw
+        finally:
+            try:
+                await page.close()
+            except Exception:
+                pass
+
+    async def _try_official_export(self, page) -> bytes | None:
+        """点击截图分享或 window.exportTreemapImage，成功返回 PNG bytes。"""
+        data_url = None
+        btn = await page.query_selector(".screenshot-trigger")
+        if btn:
+            try:
                 await btn.click()
+            except Exception as e:
+                logger.warning(f"[a_heatmap] 点击截图分享失败: {e}")
+                btn = None
+            if btn:
                 deadline = time.time() + self.export_timeout_ms / 1000.0
                 while time.time() < deadline:
                     data_url = await page.evaluate(
@@ -132,36 +161,71 @@ class SiteHeatmapCapturer:
                         break
                     await page.wait_for_timeout(300)
 
-            # 降级：尝试调用页面内 exportTreemapImage（若已挂到模块）
-            if not data_url:
-                data_url = await page.evaluate(
-                    """async () => {
-                      try {
-                        // 部分构建可能把导出函数挂在 window 上；没有则返回 null
-                        if (typeof window.exportTreemapImage === 'function') {
-                          return window.exportTreemapImage();
-                        }
-                      } catch (e) {}
-                      return null;
-                    }"""
-                )
-
-            if not data_url or not str(data_url).startswith("data:image"):
-                raise SiteCaptureError("未获取到截图 dataURL（页面结构可能已变更）")
-
-            raw = _data_url_to_bytes(str(data_url))
-            if len(raw) < 1000:
-                raise SiteCaptureError(f"导出图片过小（{len(raw)} bytes），可能渲染未完成")
-
-            logger.info(
-                f"[a_heatmap] 52etf 导出成功 size={len(raw)} cost={time.time()-t0:.1f}s"
+        if not data_url:
+            data_url = await page.evaluate(
+                """async () => {
+                  try {
+                    if (typeof window.exportTreemapImage === 'function') {
+                      return window.exportTreemapImage();
+                    }
+                  } catch (e) {}
+                  return null;
+                }"""
             )
-            return raw
-        finally:
+
+        if not data_url or not str(data_url).startswith("data:image"):
+            return None
+        try:
+            return _data_url_to_bytes(str(data_url))
+        except SiteCaptureError as e:
+            logger.warning(f"[a_heatmap] dataURL 解码失败，将尝试画布截图: {e}")
+            return None
+
+    async def _fallback_treemap_screenshot(self, page) -> bytes:
+        """官方导出不可用时，截 #treemap；再不行截视口（非整站 full_page）。"""
+        # 尽量关掉可能挡住画布的预览层
+        try:
+            await page.evaluate(
+                """() => {
+                  document.querySelectorAll(
+                    '.preview-overlay, .preview-frame'
+                  ).forEach((el) => {
+                    el.style.setProperty('display', 'none', 'important');
+                  });
+                }"""
+            )
+        except Exception:
+            pass
+
+        for selector in ("#treemap", "canvas#treemap", 'section[aria-label*="热力"]'):
+            loc = page.locator(selector).first
             try:
-                await page.close()
-            except Exception:
-                pass
+                if await loc.count() == 0:
+                    continue
+                if not await loc.is_visible():
+                    # 站点有时把 #treemap display:none，等真正画布显示
+                    try:
+                        await loc.wait_for(state="visible", timeout=3000)
+                    except Exception:
+                        continue
+                raw = await loc.screenshot(type="png")
+                if raw and len(raw) >= 1000:
+                    logger.warning(
+                        f"[a_heatmap] 官方截图分享不可用，已兜底截取 {selector}"
+                    )
+                    return raw
+            except Exception as e:
+                logger.warning(f"[a_heatmap] 元素截图失败 {selector}: {e}")
+
+        try:
+            raw = await page.screenshot(type="png", full_page=False)
+            if raw and len(raw) >= 1000:
+                logger.warning("[a_heatmap] 元素截图失败，已兜底截取当前视口")
+                return raw
+        except Exception as e:
+            raise SiteCaptureError(f"视口截图失败: {e}") from e
+
+        raise SiteCaptureError("官方导出与页面截图兜底均失败")
 
     async def _reset_browser(self) -> None:
         browser, pw_cm = self._browser, self._playwright_cm

@@ -48,7 +48,7 @@ def _parse_keywords(raw: str | None, default: str) -> list[str]:
     PLUGIN_NAME,
     "konley",
     "A股大盘热力图：52etf官方图 + 本地自绘(热力图2)，支持定时推送",
-    "0.2.0",
+    "0.2.1",
 )
 class AHeatmapPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
