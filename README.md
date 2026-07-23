@@ -1,61 +1,84 @@
 # A股热力图 (astrbot_plugin_a_heatmap)
 
-> A股大盘实时热力图，一句话生成，支持定时推送。
+> 一句话生成 A 股大盘热力图：默认走 [52etf.site](https://52etf.site/) 官方「截图分享」同款图；本地 matplotlib 自绘保留为「热力图2」。支持定时推送。
 
 ## 功能
 
-- 发送关键词（默认"热力图"）生成 A 股全市场 treemap 热力图
-- 红涨绿跌，按行业板块分组，面积=市值
-- 顶部显示上证/深证/创业板/科创50 指数 + 涨跌家数统计
-- 支持多触发词、斜杠忽略、冷却限制、管理员限制
-- 支持 Cron 定时推送到指定群/私聊
+- **热力图**：Playwright 打开 52etf.site，点击「截图分享」，导出官方 PNG（与网站一致）
+- **热力图2**：东方财富 + 同花顺数据，本地 treemap 自绘（红涨绿跌，行业分组）
+- 多触发词、斜杠忽略、冷却、管理员限制
+- Cron 定时推送到指定群/私聊（默认同官方图）
 
 ## 使用方法
 
 ### 手动触发
 
 ```
-热力图
+热力图          # 52etf 官方图（约 15~30 秒）
 /热力图
-#热力图
+热力图2         # 本地自绘
 ```
 
 ### 定时推送
 
-在 WebUI 插件配置中开启 `schedule_enable`，配置 Cron 表达式和推送目标即可。
+WebUI 插件配置中开启 `schedule_enable`，配置 Cron、`schedule_targets`，可选 `schedule_mode`：
 
-常用 Cron 示例：
+| schedule_mode | 含义 |
+|---------------|------|
+| `site`（默认） | 52etf 官方图 |
+| `legacy` | 本地自绘 |
+
+常用 Cron：
 
 | 表达式 | 含义 |
 |--------|------|
 | `0 15 * * 1-5` | 每个工作日 15:00 收盘推送 |
-| `0 9,15 * * 1-5` | 工作日 9:00 和 15:00 各推一次 |
-| `30 14 * * 1-5` | 工作日 14:30 推送 |
+| `0 9,15 * * 1-5` | 工作日 9:00 和 15:00 |
+| `30 14 * * 1-5` | 工作日 14:30 |
 
-## WebUI 配置项
+## 服务器依赖（官方图）
 
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| command_keywords | string | 热力图 | 触发词，逗号分隔支持多个 |
-| ignore_slash | bool | true | 忽略 / 或 # 前缀 |
-| admin_only | bool | false | 仅管理员可调用 |
-| cooldown | int | 30 | 冷却时间（秒） |
-| max_industries | int | 35 | 显示前 N 个行业 |
-| max_stocks_per_industry | int | 50 | 每行业最多个股数 |
-| dpi | int | 130 | 图片清晰度 |
-| schedule_enable | bool | false | 开启定时推送 |
-| schedule_cron | string | 0 15 * * 1-5 | Cron 表达式 |
-| schedule_targets | list | [] | 推送目标（群号/QQ号） |
-| schedule_target_type | string | group | group 或 private |
-| schedule_platform | string | | 平台实例 ID，留空自动检测 |
+生产环境需在 **AstrBot 使用的 Python** 中具备：
 
-## 数据来源
+```bash
+# 示例（uv 安装的 astrbot）
+/root/.local/share/uv/tools/astrbot/bin/python -m pip install playwright
+/root/.local/share/uv/tools/astrbot/bin/python -m playwright install chromium
+# 无桌面 Linux 可能还需要：playwright install-deps chromium
+```
 
-- 东方财富 `push2delay.eastmoney.com` — 全 A 股行情 + 指数
-- 同花顺 `dq.10jqka.com.cn` — 涨跌家数统计
+说明：
+
+- 使用 headless Chromium；ARM64（如 Oracle aarch64）需安装对应架构浏览器包
+- 单次导出约 20 秒、图片约 1~2MB；插件内 **浏览器复用 + 全局锁**，避免并发多开
+- 建议 `cooldown >= 20`
+- 内存紧张的 2C/小内存机器请控制触发频率
+
+## WebUI 主要配置
+
+| 配置项 | 默认 | 说明 |
+|--------|------|------|
+| command_keywords | 热力图 | 官方图触发词 |
+| command_keywords_legacy | 热力图2 | 自绘触发词 |
+| site_ready_wait_ms | 8000 | 打开页面后等待渲染 |
+| fallback_to_legacy_on_site_fail | false | 官方失败是否降级自绘 |
+| schedule_mode | site | 定时推送图源 |
+| cooldown | 30 | 冷却秒数 |
+
+自绘相关：`max_industries` / `max_stocks_per_industry` / `dpi` 仅「热力图2」生效。
+
+## 数据与图源
+
+| 路径 | 来源 |
+|------|------|
+| 热力图 | https://52etf.site/ 页面内 canvas 导出（截图分享） |
+| 热力图2 | 东财 `push2delay.eastmoney.com`、同花顺涨跌统计 |
+
+图源归属 52etf.site，请合理控制调用频率。
 
 ## 依赖
 
+- playwright
 - matplotlib
 - squarify
 - httpx

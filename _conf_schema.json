@@ -1,9 +1,15 @@
 {
   "command_keywords": {
-    "description": "触发指令关键词（逗号分隔，支持多个）",
+    "description": "官方热力图触发词（52etf，逗号分隔）",
     "type": "string",
     "default": "热力图",
-    "hint": "例如：热力图,大盘,heatmap。用户发送任一关键词即可触发生成热力图"
+    "hint": "例如：热力图,大盘。用户发送任一关键词触发 52etf 官方截图"
+  },
+  "command_keywords_legacy": {
+    "description": "本地自绘热力图触发词（逗号分隔）",
+    "type": "string",
+    "default": "热力图2",
+    "hint": "例如：热力图2,本地热力图。使用 matplotlib 自绘 treemap"
   },
   "ignore_slash": {
     "description": "忽略指令前的 / 或 # 前缀",
@@ -21,25 +27,67 @@
     "description": "冷却时间（秒）",
     "type": "int",
     "default": 30,
-    "hint": "同一用户在该时间内重复触发会被拦截，防止频繁刷图"
+    "hint": "同一用户在该时间内重复触发会被拦截；官方图约需 20s，建议不少于 20"
+  },
+  "site_url": {
+    "description": "52etf 热力图页面 URL",
+    "type": "string",
+    "default": "https://52etf.site/",
+    "hint": "一般无需修改"
+  },
+  "site_viewport_width": {
+    "description": "浏览器视口宽度",
+    "type": "int",
+    "default": 1400,
+    "hint": "影响导出图比例，建议 1200~1600"
+  },
+  "site_viewport_height": {
+    "description": "浏览器视口高度",
+    "type": "int",
+    "default": 900,
+    "hint": "影响导出图比例，建议 800~1000"
+  },
+  "site_goto_timeout_ms": {
+    "description": "页面加载超时（毫秒）",
+    "type": "int",
+    "default": 45000,
+    "hint": "打开 52etf 与等待 #treemap 的超时"
+  },
+  "site_ready_wait_ms": {
+    "description": "数据渲染等待（毫秒）",
+    "type": "int",
+    "default": 8000,
+    "hint": "页面打开后额外等待 treemap 画完；过短可能导出空白图"
+  },
+  "site_export_timeout_ms": {
+    "description": "截图导出超时（毫秒）",
+    "type": "int",
+    "default": 15000,
+    "hint": "点击「截图分享」后等待 dataURL 的最长时间"
+  },
+  "fallback_to_legacy_on_site_fail": {
+    "description": "官方图失败时降级本地自绘",
+    "type": "bool",
+    "default": false,
+    "hint": "默认关闭，避免静默换成另一套图；需要兜底时可打开"
   },
   "max_industries": {
-    "description": "显示前 N 个行业板块",
+    "description": "自绘：显示前 N 个行业板块",
     "type": "int",
     "default": 35,
-    "hint": "按总市值排序取前 N 个行业，范围 10~50"
+    "hint": "仅「热力图2」生效，按总市值排序取前 N 个行业"
   },
   "max_stocks_per_industry": {
-    "description": "每个行业最多显示个股数",
+    "description": "自绘：每个行业最多显示个股数",
     "type": "int",
     "default": 50,
-    "hint": "每个行业内按市值排序取前 N 只股票，范围 10~100"
+    "hint": "仅「热力图2」生效"
   },
   "dpi": {
-    "description": "图片清晰度",
+    "description": "自绘：图片清晰度",
     "type": "int",
     "default": 130,
-    "hint": "越高越清晰，文件也越大。建议 100~200"
+    "hint": "仅「热力图2」生效，建议 100~200"
   },
   "schedule_enable": {
     "description": "开启定时自动推送",
@@ -47,11 +95,18 @@
     "default": false,
     "hint": "开启后按 Cron 表达式自动推送热力图到指定群/用户"
   },
+  "schedule_mode": {
+    "description": "定时推送使用的图源",
+    "type": "string",
+    "default": "site",
+    "options": ["site", "legacy"],
+    "hint": "site=52etf官方图，legacy=本地自绘"
+  },
   "schedule_cron": {
     "description": "定时推送 Cron 表达式",
     "type": "string",
     "default": "0 15 * * 1-5",
-    "hint": "常用示例：\n0 15 * * 1-5 → 每个工作日 15:00 收盘推送\n0 9,15 * * 1-5 → 工作日 9:00 开盘和 15:00 收盘各推一次\n30 14 * * 1-5 → 工作日 14:30 推送\n0 11,14 * * 1-5 → 工作日 11:00 和 14:00 各推一次\n格式说明：分 时 日 月 周（0=周日，1-5=周一至周五）"
+    "hint": "常用示例：\n0 15 * * 1-5 → 每个工作日 15:00 收盘推送\n0 9,15 * * 1-5 → 工作日 9:00 开盘和 15:00 收盘各推一次\n格式说明：分 时 日 月 周（0=周日，1-5=周一至周五）"
   },
   "schedule_targets": {
     "description": "推送目标列表（群号或QQ号，每行一个）",
@@ -63,6 +118,7 @@
     "description": "推送目标类型",
     "type": "string",
     "default": "group",
+    "options": ["group", "private"],
     "hint": "group=群聊推送，private=私聊推送"
   },
   "schedule_platform": {

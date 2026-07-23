@@ -2,3 +2,4 @@ matplotlib>=3.8.0
 squarify>=0.4.4
 httpx>=0.27.0
 apscheduler>=3.10.0
+playwright>=1.40.0
