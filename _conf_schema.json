@@ -38,20 +38,20 @@
   "site_viewport_width": {
     "description": "浏览器视口宽度",
     "type": "int",
-    "default": 1400,
-    "hint": "影响导出图比例，建议 1200~1600"
+    "default": 2560,
+    "hint": "默认 2560，保留左侧栏同时让右侧热力图更宽、内容更多。可调 1920~3200"
   },
   "site_viewport_height": {
     "description": "浏览器视口高度",
     "type": "int",
-    "default": 900,
-    "hint": "影响导出图比例，建议 800~1000"
+    "default": 1440,
+    "hint": "默认 1440（与 2560 组成 16:9 宽屏）"
   },
   "site_device_scale_factor": {
     "description": "截图设备像素比（DPI 倍率）",
     "type": "float",
-    "default": 3,
-    "hint": "默认 3，与官网导出清晰度接近（1400×900 视口 → 约 4200×2700 像素）。范围 1~4，越高越清晰、内存越大"
+    "default": 2,
+    "hint": "默认 2：2560×1440 → 约 5120×2880 像素。范围 1~4，越高越清晰、内存越大"
   },
   "site_goto_timeout_ms": {
     "description": "页面加载超时（毫秒）",

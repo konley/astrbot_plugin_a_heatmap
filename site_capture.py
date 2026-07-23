@@ -1,6 +1,6 @@
 """从 52etf.site 通过 Playwright 导出热力图 PNG。
 
-默认：高 DPI 视口全屏截图（含侧栏，device_scale_factor 默认 3）。
+默认：宽视口 + 高 DPI 截图（保留左侧栏，右侧热力图铺满，约 2560×1440×dpr2）。
 兜底：官网「截图分享」dataURL → 再截 #treemap 画布。
 浏览器实例进程内复用，全局锁防并发爆内存。
 """
@@ -16,9 +16,10 @@ from typing import Any
 from astrbot.api import logger
 
 DEFAULT_URL = "https://52etf.site/"
-DEFAULT_VIEWPORT = {"width": 1400, "height": 900}
-# 与 52etf exportTreemapImage 内部 scale≈3 对齐，视口截图像素约 4200×2700
-DEFAULT_DEVICE_SCALE = 3.0
+# 宽视口：左侧栏约 158px 仍在，右侧 treemap 横向内容明显多于 1400 视口
+DEFAULT_VIEWPORT = {"width": 2560, "height": 1440}
+# dpr=2 → 导出约 5120×2880，接近桌面高清效果且内存可控
+DEFAULT_DEVICE_SCALE = 2.0
 LAUNCH_ARGS = [
     "--no-sandbox",
     "--disable-dev-shm-usage",
