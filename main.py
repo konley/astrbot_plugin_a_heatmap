@@ -3,7 +3,7 @@
 发送指令生成实时行情热力图，支持定时推送到群/私聊。
 
 功能：
-- 主路径「热力图」：Playwright 抓取 52etf.site 官方截图分享图
+- 主路径「热力图」：Playwright 高 DPI 视口全屏截取 52etf.site（截图分享/画布为兜底）
 - 备路径「热力图2」：本地 matplotlib + squarify 自绘 treemap
 - 定时推送：按 Cron 表达式自动推送到配置的目标群/用户
 - 多触发词、斜杠忽略、冷却限制、管理员限制
@@ -47,8 +47,8 @@ def _parse_keywords(raw: str | None, default: str) -> list[str]:
 @register(
     PLUGIN_NAME,
     "konley",
-    "A股大盘热力图：52etf官方图 + 本地自绘(热力图2)，支持定时推送",
-    "0.2.2",
+    "A股大盘热力图：52etf高清视口截图 + 本地自绘(热力图2)，支持定时推送",
+    "0.2.3",
 )
 class AHeatmapPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
@@ -250,7 +250,7 @@ class AHeatmapPlugin(Star):
                 fail_msg = ""
             else:
                 fail_msg = (
-                    "官方热力图获取失败（浏览器/页面超时）。"
+                    "热力图获取失败（浏览器/页面超时）。"
                     "可稍后重试，或发送「热力图2」使用本地自绘。"
                 )
 

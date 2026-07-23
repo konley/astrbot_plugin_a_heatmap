@@ -1,10 +1,10 @@
 # A股热力图 (astrbot_plugin_a_heatmap)
 
-> 一句话生成 A 股大盘热力图：默认走 [52etf.site](https://52etf.site/) 官方「截图分享」同款图；本地 matplotlib 自绘保留为「热力图2」。支持定时推送。
+> 一句话生成 A 股大盘热力图：默认 **高清全屏截取** [52etf.site](https://52etf.site/) 页面（含侧栏）；官网「截图分享」与画布截图仅作兜底。本地 matplotlib 自绘保留为「热力图2」。支持定时推送。
 
 ## 功能
 
-- **热力图**：Playwright 打开 52etf.site，优先点「截图分享」导出官方 PNG；失败则用 **高 DPI 视口截图**（`device_scale_factor` 默认 3，约 4200×2700）兜底
+- **热力图**：Playwright 打开 52etf.site，**默认高 DPI 视口全屏截图**（`device_scale_factor` 默认 3，约 4200×2700）；失败再兜底「截图分享」/ `#treemap`
 - **热力图2**：东方财富 + 同花顺数据，本地 treemap 自绘（红涨绿跌，行业分组）
 - 多触发词、斜杠忽略、冷却、管理员限制
 - Cron 定时推送到指定群/私聊（默认同官方图）
@@ -14,7 +14,7 @@
 ### 手动触发
 
 ```
-热力图          # 52etf 官方图（约 15~30 秒）
+热力图          # 52etf 高清全屏截图（约 15~30 秒）
 /热力图
 热力图2         # 本地自绘
 ```
@@ -25,7 +25,7 @@ WebUI 插件配置中开启 `schedule_enable`，配置 Cron、`schedule_targets`
 
 | schedule_mode | 含义 |
 |---------------|------|
-| `site`（默认） | 52etf 官方图 |
+| `site`（默认） | 52etf 高清视口截图 |
 | `legacy` | 本地自绘 |
 
 常用 Cron：
@@ -58,7 +58,7 @@ WebUI 插件配置中开启 `schedule_enable`，配置 Cron、`schedule_targets`
 
 | 配置项 | 默认 | 说明 |
 |--------|------|------|
-| command_keywords | 热力图 | 官方图触发词 |
+| command_keywords | 热力图 | 52etf 页面截图触发词 |
 | command_keywords_legacy | 热力图2 | 自绘触发词 |
 | site_ready_wait_ms | 8000 | 打开页面后等待渲染 |
 | fallback_to_legacy_on_site_fail | false | 官方失败是否降级自绘 |
@@ -71,7 +71,7 @@ WebUI 插件配置中开启 `schedule_enable`，配置 Cron、`schedule_targets`
 
 | 路径 | 来源 |
 |------|------|
-| 热力图 | https://52etf.site/ 页面内 canvas 导出（截图分享） |
+| 热力图 | https://52etf.site/ 高清视口截图（失败时截图分享 / 画布） |
 | 热力图2 | 东财 `push2delay.eastmoney.com`、同花顺涨跌统计 |
 
 图源归属 52etf.site，请合理控制调用频率。

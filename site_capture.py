@@ -1,8 +1,8 @@
-"""从 52etf.site 通过 Playwright 导出官方热力图 PNG。
+"""从 52etf.site 通过 Playwright 导出热力图 PNG。
 
-与官网「截图分享」同源：等待 treemap 就绪后点击 .screenshot-trigger，
-从预览 dataURL 解码 PNG。失败时用高 DPI 视口截图兜底（device_scale_factor，
-接近官方导出清晰度）。浏览器实例进程内复用，全局锁防并发爆内存。
+默认：高 DPI 视口全屏截图（含侧栏，device_scale_factor 默认 3）。
+兜底：官网「截图分享」dataURL → 再截 #treemap 画布。
+浏览器实例进程内复用，全局锁防并发爆内存。
 """
 
 from __future__ import annotations
@@ -121,13 +121,22 @@ class SiteHeatmapCapturer:
             if self.ready_wait_ms > 0:
                 await page.wait_for_timeout(self.ready_wait_ms)
 
-            # 1) 优先：官网「截图分享」dataURL（构图/水印最正）
-            raw = await self._try_official_export(page)
-            mode = "site_export"
+            # 1) 默认：高 DPI 视口全屏（含侧栏）
+            raw = await self._viewport_screenshot(page)
+            mode = "viewport_hd"
+
+            # 2) 兜底：官网「截图分享」dataURL
             if raw is None:
-                # 2) 兜底：高 DPI 视口截图（构图含侧栏，清晰度接近官方）
-                raw = await self._fallback_viewport_screenshot(page)
-                mode = "viewport_hd"
+                raw = await self._try_official_export(page)
+                mode = "site_export"
+
+            # 3) 再兜底：#treemap 画布
+            if raw is None:
+                raw = await self._treemap_element_screenshot(page)
+                mode = "treemap_screenshot"
+
+            if raw is None:
+                raise SiteCaptureError("视口截图、官方导出与画布截图均失败")
 
             if len(raw) < 1000:
                 raise SiteCaptureError(f"导出图片过小（{len(raw)} bytes），可能渲染未完成")
@@ -143,8 +152,22 @@ class SiteHeatmapCapturer:
             except Exception:
                 pass
 
+    async def _viewport_screenshot(self, page) -> bytes | None:
+        """高 DPI 视口截图（主路径）。"""
+        await self._hide_overlays(page)
+        try:
+            raw = await page.screenshot(type="png", full_page=False)
+            if raw and len(raw) >= 1000:
+                return raw
+            logger.warning(
+                f"[a_heatmap] 视口截图结果过小: {0 if not raw else len(raw)} bytes"
+            )
+        except Exception as e:
+            logger.warning(f"[a_heatmap] 视口截图失败，将尝试兜底: {e}")
+        return None
+
     async def _try_official_export(self, page) -> bytes | None:
-        """点击截图分享或 window.exportTreemapImage，成功返回 PNG bytes。"""
+        """兜底：点击截图分享或 window.exportTreemapImage。"""
         data_url = None
         btn = await page.query_selector(".screenshot-trigger")
         if btn:
@@ -185,9 +208,13 @@ class SiteHeatmapCapturer:
         if not data_url or not str(data_url).startswith("data:image"):
             return None
         try:
-            return _data_url_to_bytes(str(data_url))
+            raw = _data_url_to_bytes(str(data_url))
+            logger.warning(
+                f"[a_heatmap] 视口截图不可用，已兜底官网截图分享 bytes={len(raw)}"
+            )
+            return raw
         except SiteCaptureError as e:
-            logger.warning(f"[a_heatmap] dataURL 解码失败，将尝试高清视口截图: {e}")
+            logger.warning(f"[a_heatmap] dataURL 解码失败: {e}")
             return None
 
     async def _hide_overlays(self, page) -> None:
@@ -204,22 +231,9 @@ class SiteHeatmapCapturer:
         except Exception:
             pass
 
-    async def _fallback_viewport_screenshot(self, page) -> bytes:
-        """官方导出不可用时：高 DPI 视口截图；再失败才截 #treemap。"""
+    async def _treemap_element_screenshot(self, page) -> bytes | None:
+        """再兜底：只截 #treemap 画布。"""
         await self._hide_overlays(page)
-
-        # 主兜底：当前视口（含侧栏，用户观感更好；像素 = CSS × device_scale_factor）
-        try:
-            raw = await page.screenshot(type="png", full_page=False)
-            if raw and len(raw) >= 1000:
-                logger.warning(
-                    f"[a_heatmap] 官方截图分享不可用，已高清视口兜底 "
-                    f"dpr={self.device_scale_factor} bytes={len(raw)}"
-                )
-                return raw
-        except Exception as e:
-            logger.warning(f"[a_heatmap] 视口截图失败: {e}")
-
         for selector in ("#treemap", "canvas#treemap"):
             loc = page.locator(selector).first
             try:
@@ -233,13 +247,12 @@ class SiteHeatmapCapturer:
                 raw = await loc.screenshot(type="png")
                 if raw and len(raw) >= 1000:
                     logger.warning(
-                        f"[a_heatmap] 视口截图失败，已兜底截取 {selector}"
+                        f"[a_heatmap] 已兜底截取 {selector} bytes={len(raw)}"
                     )
                     return raw
             except Exception as e:
                 logger.warning(f"[a_heatmap] 元素截图失败 {selector}: {e}")
-
-        raise SiteCaptureError("官方导出与高清视口截图兜底均失败")
+        return None
 
     async def _reset_browser(self) -> None:
         browser, pw_cm = self._browser, self._playwright_cm

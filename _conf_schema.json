@@ -1,9 +1,9 @@
 {
   "command_keywords": {
-    "description": "官方热力图触发词（52etf，逗号分隔）",
+    "description": "热力图触发词（52etf 页面截图，逗号分隔）",
     "type": "string",
     "default": "热力图",
-    "hint": "例如：热力图,大盘。用户发送任一关键词触发 52etf 官方截图"
+    "hint": "例如：热力图,大盘。默认高清视口全屏截取 52etf 页面"
   },
   "command_keywords_legacy": {
     "description": "本地自绘热力图触发词（逗号分隔）",
@@ -69,7 +69,7 @@
     "description": "截图导出超时（毫秒）",
     "type": "int",
     "default": 15000,
-    "hint": "点击「截图分享」后等待 dataURL 的最长时间"
+    "hint": "兜底走官网「截图分享」时，等待 dataURL 的最长时间"
   },
   "fallback_to_legacy_on_site_fail": {
     "description": "官方图失败时降级本地自绘",

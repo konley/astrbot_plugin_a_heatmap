@@ -1,6 +1,6 @@
 name: astrbot_plugin_a_heatmap
-desc: A股大盘热力图，52etf官方截图 + 本地自绘(热力图2)，支持定时推送到群
-version: 0.2.2
+desc: A股大盘热力图，52etf高清视口截图 + 本地自绘(热力图2)，支持定时推送到群
+version: 0.2.3
 author: konley
 display_name: A股热力图
 repo: https://github.com/konley/astrbot_plugin_a_heatmap
