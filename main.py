@@ -48,7 +48,7 @@ def _parse_keywords(raw: str | None, default: str) -> list[str]:
     PLUGIN_NAME,
     "konley",
     "A股大盘热力图：52etf官方图 + 本地自绘(热力图2)，支持定时推送",
-    "0.2.1",
+    "0.2.2",
 )
 class AHeatmapPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
@@ -75,6 +75,9 @@ class AHeatmapPlugin(Star):
                 "width": max(800, int(self.config.get("site_viewport_width", 1400) or 1400)),
                 "height": max(600, int(self.config.get("site_viewport_height", 900) or 900)),
             },
+            device_scale_factor=float(
+                self.config.get("site_device_scale_factor", 3) or 3
+            ),
             goto_timeout_ms=max(
                 5000, int(self.config.get("site_goto_timeout_ms", 45000) or 45000)
             ),

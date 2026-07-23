@@ -47,6 +47,12 @@
     "default": 900,
     "hint": "影响导出图比例，建议 800~1000"
   },
+  "site_device_scale_factor": {
+    "description": "截图设备像素比（DPI 倍率）",
+    "type": "float",
+    "default": 3,
+    "hint": "默认 3，与官网导出清晰度接近（1400×900 视口 → 约 4200×2700 像素）。范围 1~4，越高越清晰、内存越大"
+  },
   "site_goto_timeout_ms": {
     "description": "页面加载超时（毫秒）",
     "type": "int",
